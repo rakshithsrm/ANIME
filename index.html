@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AniPulse — Every Anime, Every Character</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0A0118;
+    --bg2: #130A28;
+    --panel: #170D30;
+    --violet: #8B5CF6;
+    --magenta: #FF2E8A;
+    --cyan: #22E5FF;
+    --gold: #FFD23F;
+    --text: #F4F0FF;
+    --muted: #9C93B8;
+    --line: rgba(255,255,255,0.08);
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+
+  body{
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, #23103F 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    overflow-x:hidden;
+    min-height:100vh;
+  }
+
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  .display{ font-family:'Space Grotesk', sans-serif; }
+  ::selection{ background: var(--magenta); color:#fff; }
+  img{ display:block; max-width:100%; }
+
+  /* ---------- BANNER ---------- */
+  .banner{
+    display:none;
+    align-items:center; gap:12px;
+    padding: 12px 5vw;
+    background: rgba(255,210,63,0.08);
+    border-bottom: 1px solid rgba(255,210,63,0.25);
+    font-size: 13px;
+    color: var(--gold);
+  }
+  .banner.visible{ display:flex; }
+  .banner button{
+    margin-left:auto;
+    background:none; border:1px solid rgba(255,210,63,0.3);
+    color: var(--gold); padding:4px 10px; border-radius:8px;
+    font-size:12px; cursor:pointer; flex-shrink:0;
+  }
+
+  /* ---------- NAV ---------- */
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 22px 5vw;
+    position: sticky; top:0; z-index: 50;
+    backdrop-filter: blur(10px);
+    background: rgba(10,1,24,0.55);
+    border-bottom: 1px solid var(--line);
+  }
+  .logo{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700; font-size:22px; letter-spacing:-0.02em;
+    display:flex; align-items:center; gap:10px;
+  }
+  .logo-dot{
+    width:10px;height:10px;border-radius:50%;
+    background: linear-gradient(135deg, var(--magenta), var(--violet));
+    box-shadow: 0 0 16px var(--magenta);
+  }
+  .live-badge{
+    display:flex; align-items:center; gap:8px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px; letter-spacing:0.08em;
+    color: var(--muted);
+    padding: 8px 14px;
+    border:1px solid var(--line);
+    border-radius: 100px;
+    background: rgba(255,255,255,0.02);
+  }
+  .pulse-dot{
+    width:8px;height:8px;border-radius:50%;
+    background: var(--cyan);
+    box-shadow: 0 0 10px var(--cyan);
+    animation: blink 1.6s ease-in-out infinite;
+  }
+  .pulse-dot.offline{ background: var(--muted); box-shadow:none; animation:none; }
+  @keyframes blink{
+    0%,100%{ opacity:1; transform:scale(1); }
+    50%{ opacity:0.35; transform:scale(0.7); }
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative;
+    padding: 7vh 5vw 6vh;
+    text-align:center;
+    overflow:hidden;
+  }
+  #bgCanvas{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    z-index:0;
+    opacity:0.9;
+  }
+  .hero-inner{ position:relative; z-index:2; max-width: 900px; margin:0 auto; }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px; letter-spacing:0.15em; text-transform:uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .headline{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size: clamp(38px, 7.5vw, 82px);
+    line-height:1.02;
+    letter-spacing:-0.03em;
+    background: linear-gradient(120deg, var(--cyan) 0%, var(--violet) 45%, var(--magenta) 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    background-size: 200% 200%;
+    animation: shimmer 6s ease infinite;
+    text-shadow: 0 0 80px rgba(139,92,246,0.25);
+  }
+  @keyframes shimmer{
+    0%{ background-position: 0% 50%; }
+    50%{ background-position: 100% 50%; }
+    100%{ background-position: 0% 50%; }
+  }
+
+  .sub{
+    margin-top: 16px;
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 560px;
+    margin-left:auto; margin-right:auto;
+  }
+
+  .search-bar{
+    margin-top: 34px;
+    display:flex; gap:10px;
+    max-width: 560px;
+    margin-left:auto; margin-right:auto;
+  }
+  .search-bar input{
+    flex:1;
+    padding: 16px 20px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    font-family:'Inter', sans-serif;
+    font-size: 15px;
+    outline:none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .search-bar input::placeholder{ color: var(--muted); }
+  .search-bar input:focus{
+    border-color: var(--violet);
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.2);
+  }
+  .search-bar button{
+    padding: 16px 26px;
+    border-radius: 14px;
+    border:none;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600; font-size:15px;
+    color: #0A0118;
+    background: linear-gradient(120deg, var(--cyan), var(--violet));
+    cursor:pointer;
+    transition: transform 0.15s ease;
+  }
+  .search-bar button:hover{ transform: translateY(-2px); }
+  .search-bar button:active{ transform: translateY(0); }
+
+  .stats-row{
+    margin-top: 40px;
+    display:flex; justify-content:center; gap: 40px; flex-wrap:wrap;
+  }
+  .stat{ text-align:center; }
+  .stat-value{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700; font-size: 30px;
+  }
+  .stat-label{
+    color: var(--muted); font-size:12px; margin-top:4px;
+    letter-spacing:0.03em;
+  }
+
+  /* ---------- MARQUEE ---------- */
+  .marquee-wrap{
+    position:relative;
+    overflow:hidden;
+    padding: 26px 0;
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    background: rgba(255,255,255,0.015);
+  }
+  .marquee-track{
+    display:flex; gap:18px;
+    width: max-content;
+    animation: scrollLeft 40s linear infinite;
+  }
+  .marquee-wrap:hover .marquee-track{ animation-play-state: paused; }
+  @keyframes scrollLeft{
+    from{ transform: translateX(0); }
+    to{ transform: translateX(-50%); }
+  }
+  .marquee-card{
+    width: 110px; flex-shrink:0;
+    border-radius: 12px;
+    overflow:hidden;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    aspect-ratio: 2/3;
+  }
+  .marquee-card img{ width:100%; height:100%; object-fit:cover; }
+  .marquee-card .cover-placeholder{ height:100%; }
+
+  /* ---------- SECTIONS ---------- */
+  section.content{ padding: 6vh 5vw; }
+  .section-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom: 22px; flex-wrap:wrap; gap:10px;
+  }
+  .section-title{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600; font-size: clamp(20px, 3vw, 26px);
+  }
+  .section-sub{ color:var(--muted); font-size:13px; }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 18px;
+  }
+
+  .card{
+    border-radius: 16px;
+    overflow:hidden;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,0.02);
+    cursor:pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    position:relative;
+  }
+  .card:hover{
+    transform: translateY(-6px);
+    border-color: var(--violet);
+  }
+  .card .cover{
+    width:100%; aspect-ratio: 2/3; object-fit:cover;
+    background: var(--panel);
+  }
+  .cover-placeholder{
+    width:100%; aspect-ratio: 2/3;
+    display:flex; align-items:center; justify-content:center;
+    text-align:center; padding: 20px 16px;
+    font-family:'Space Grotesk', sans-serif; font-weight:600; font-size: 15px;
+    line-height:1.35; letter-spacing:-0.01em; color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  .card .info{ padding: 13px 14px 15px; display:flex; flex-direction:column; gap:5px; }
+  .card .title{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600; font-size:14px;
+    line-height:1.3;
+    display:-webkit-box;
+    -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    overflow:hidden;
+  }
+  .card .meta{
+    font-size:11px; color:var(--muted);
+    display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical;
+    overflow:hidden;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .score-badge{
+    position:absolute; top:10px; right:10px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px; font-weight:700;
+    padding: 4px 9px; border-radius: 100px;
+    background: rgba(10,1,24,0.75);
+    color: var(--gold);
+    border: 1px solid rgba(255,210,63,0.3);
+    backdrop-filter: blur(4px);
+  }
+
+  .char-card .cover, .char-card .cover-placeholder{ aspect-ratio: 3/4; }
+  .char-role{
+    display:inline-block; width:fit-content;
+    font-size:10px; padding:3px 8px; border-radius:100px;
+    background: rgba(255,46,138,0.12); color: var(--magenta);
+    font-family:'JetBrains Mono', monospace; letter-spacing:0.03em;
+  }
+
+  .empty-state, .loading-state{
+    text-align:center; padding: 40px 20px;
+    color: var(--muted); font-size:14px;
+    border: 1px dashed var(--line); border-radius:16px;
+  }
+  .loading-state{ color: var(--cyan); }
+
+  .spinner{
+    width:34px; height:34px; margin: 0 auto 14px;
+    border-radius:50%;
+    border: 3px solid rgba(255,255,255,0.08);
+    border-top-color: var(--cyan);
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  #searchSection{ display:none; }
+  #searchSection.visible{ display:block; }
+
+  /* ---------- MODAL ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; z-index:100;
+    background: rgba(5,0,14,0.75);
+    backdrop-filter: blur(6px);
+    display:none;
+    align-items:flex-start; justify-content:center;
+    overflow-y:auto;
+    padding: 6vh 5vw;
+  }
+  .modal-backdrop.open{ display:flex; }
+  .modal{
+    max-width: 760px; width:100%;
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 30px;
+    position:relative;
+    animation: modalIn 0.25s ease;
+  }
+  @keyframes modalIn{
+    from{ opacity:0; transform: translateY(16px) scale(0.98); }
+    to{ opacity:1; transform: translateY(0) scale(1); }
+  }
+  .modal-close{
+    position:absolute; top:18px; right:18px;
+    width:34px; height:34px; border-radius:50%;
+    border:1px solid var(--line);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    font-size:16px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modal-header{ display:flex; gap:20px; margin-bottom: 20px; }
+  .modal-header img, .modal-header .cover-placeholder{
+    width: 130px; border-radius: 12px; flex-shrink:0;
+    aspect-ratio: 2/3; object-fit:cover;
+  }
+  .modal-title{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700; font-size: 24px; line-height:1.15;
+  }
+  .modal-meta{
+    margin-top:10px; display:flex; gap:14px; flex-wrap:wrap;
+    font-family:'JetBrains Mono', monospace; font-size:12px; color: var(--muted);
+  }
+  .modal-synopsis{
+    font-size:14px; line-height:1.6; color: var(--muted);
+    max-height: 140px; overflow-y:auto; margin-bottom: 22px;
+    padding-right: 8px;
+  }
+  .modal-section-title{
+    font-family:'Space Grotesk', sans-serif; font-weight:600;
+    font-size:15px; margin-bottom:12px;
+  }
+  .modal-char-grid{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(90px,1fr));
+    gap: 12px;
+  }
+  .modal-char{ text-align:center; }
+  .modal-char img, .modal-char .cover-placeholder{
+    width:100%; aspect-ratio: 3/4; object-fit:cover;
+    border-radius: 10px; border:1px solid var(--line);
+    font-size: 10px; padding: 4px;
+  }
+  .modal-char .name{
+    font-size:11px; margin-top:6px; line-height:1.2;
+    font-family:'Inter', sans-serif;
+  }
+
+  footer{
+    text-align:center; padding: 30px 5vw 40px;
+    color: var(--muted); font-size:12px;
+    border-top:1px solid var(--line);
+  }
+  footer a{ color: var(--cyan); text-decoration:none; }
+
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+  }
+  a:focus-visible, button:focus-visible, input:focus-visible{
+    outline: 2px solid var(--cyan);
+    outline-offset: 3px;
+  }
+</style>
+</head>
+<body>
+
+<div class="banner" id="offlineBanner">
+  ⚠ Live database unreachable from here — showing a built-in highlight set instead. Download this file and open it directly in a browser (or host it) to unlock live search across all anime.
+  <button id="bannerDismiss">Dismiss</button>
+</div>
+
+<nav>
+  <div class="logo"><span class="logo-dot"></span>AniPulse</div>
+  <div class="live-badge"><span class="pulse-dot" id="pulseDot"></span><span id="liveLabel">LIVE ANIME DATABASE</span></div>
+</nav>
+
+<section class="hero">
+  <canvas id="bgCanvas"></canvas>
+  <div class="hero-inner">
+    <div class="eyebrow">Live when it can reach the network, built-in when it can't</div>
+    <div class="headline display">Every anime.<br>Every character.</div>
+    <div class="sub">Search any title and pull up its full character roster.</div>
+
+    <form class="search-bar" id="searchForm">
+      <input type="text" id="searchInput" placeholder="Search any anime — Naruto, Bleach, Frieren..." autocomplete="off">
+      <button type="submit">Search</button>
+    </form>
+
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-value display mono" id="statTitles">—</div>
+        <div class="stat-label">Titles indexed</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value display mono" id="statChars">—</div>
+        <div class="stat-label">Characters logged</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value display mono" id="statToday">—</div>
+        <div class="stat-label">Airing this season</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="marquee-wrap">
+  <div class="marquee-track" id="marqueeTrack"></div>
+</div>
+
+<section class="content" id="searchSection">
+  <div class="section-head">
+    <div class="section-title display">Search results</div>
+    <div class="section-sub mono" id="searchMeta"></div>
+  </div>
+  <div class="grid" id="searchGrid"></div>
+</section>
+
+<section class="content">
+  <div class="section-head">
+    <div class="section-title display">Top anime right now</div>
+    <div class="section-sub mono">tap a title to see its characters</div>
+  </div>
+  <div class="grid" id="topAnimeGrid">
+    <div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div>Loading top anime…</div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="section-head">
+    <div class="section-title display">Character roster</div>
+    <div class="section-sub mono">main &amp; supporting cast, across every title above</div>
+  </div>
+  <div class="grid" id="topCharGrid">
+    <div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div>Loading characters…</div>
+  </div>
+</section>
+
+<footer>
+  Live data served from <a href="https://jikan.moe" target="_blank" rel="noopener">Jikan</a>, an unofficial MyAnimeList API. Not affiliated with MyAnimeList.
+</footer>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+const API = 'https://api.jikan.moe/v4';
+let LIVE_MODE = true;
+
+/* ================= FALLBACK DATA (used only if the live API can't be reached) ================= */
+const FALLBACK_ANIME = [
+  { mal_id:'fb-1', title:'Fullmetal Alchemist: Brotherhood', score:9.1, episodes:64, type:'TV', status:'Finished Airing', synopsis:'Two brothers use alchemy in their quest to restore what they lost, uncovering a nation-spanning conspiracy along the way.', gradient:'linear-gradient(135deg,#8B5CF6,#22E5FF)' },
+  { mal_id:'fb-2', title:'Attack on Titan', score:8.9, episodes:87, type:'TV', status:'Finished Airing', synopsis:'Humanity fights for survival against giant humanoid Titans behind the safety of enormous walls.', gradient:'linear-gradient(135deg,#FF2E8A,#8B5CF6)' },
+  { mal_id:'fb-3', title:'Steins;Gate', score:9.0, episodes:24, type:'TV', status:'Finished Airing', synopsis:'A self-proclaimed mad scientist discovers a way to send messages to the past, with consequences that spiral out of control.', gradient:'linear-gradient(135deg,#22E5FF,#FFD23F)' },
+  { mal_id:'fb-4', title:'One Piece', score:8.7, episodes:1100, type:'TV', status:'Currently Airing', synopsis:'A young pirate with rubber powers sails the seas in search of the ultimate treasure, the One Piece.', gradient:'linear-gradient(135deg,#FFD23F,#FF2E8A)' },
+  { mal_id:'fb-5', title:"Frieren: Beyond Journey's End", score:9.3, episodes:28, type:'TV', status:'Finished Airing', synopsis:'An elven mage who outlives her adventuring companions learns what it means to understand the people she has lost.', gradient:'linear-gradient(135deg,#8B5CF6,#FF2E8A)' },
+  { mal_id:'fb-6', title:'Hunter x Hunter (2011)', score:9.0, episodes:148, type:'TV', status:'Finished Airing', synopsis:'A boy sets out to become a Hunter, an elite licensed professional, in hopes of finding his absent father.', gradient:'linear-gradient(135deg,#22E5FF,#8B5CF6)' },
+  { mal_id:'fb-7', title:'Death Note', score:8.6, episodes:37, type:'TV', status:'Finished Airing', synopsis:'A high schooler gains a notebook that kills anyone whose name is written in it, and sets out to reshape the world.', gradient:'linear-gradient(135deg,#FF2E8A,#FFD23F)' },
+  { mal_id:'fb-8', title:'Jujutsu Kaisen', score:8.6, episodes:47, type:'TV', status:'Currently Airing', synopsis:'A student swallows a cursed object to protect his friends and is drawn into the hidden world of cursed spirits.', gradient:'linear-gradient(135deg,#FFD23F,#22E5FF)' },
+  { mal_id:'fb-9', title:'Demon Slayer: Kimetsu no Yaiba', score:8.5, episodes:55, type:'TV', status:'Currently Airing', synopsis:'A young boy becomes a demon slayer to avenge his family and cure his sister, turned into a demon herself.', gradient:'linear-gradient(135deg,#8B5CF6,#FFD23F)' },
+  { mal_id:'fb-10', title:'Vinland Saga', score:8.8, episodes:48, type:'TV', status:'Currently Airing', synopsis:'A young Viking swears revenge on the man who took everything from him, only to question the cost of vengeance.', gradient:'linear-gradient(135deg,#FF2E8A,#22E5FF)' },
+  { mal_id:'fb-11', title:'Mob Psycho 100', score:8.6, episodes:37, type:'TV', status:'Finished Airing', synopsis:'A psychic middle schooler tries to live a normal life while keeping his overwhelming powers in check.', gradient:'linear-gradient(135deg,#22E5FF,#FF2E8A)' },
+  { mal_id:'fb-12', title:'Violet Evergarden', score:8.7, episodes:13, type:'TV', status:'Finished Airing', synopsis:'A former soldier becomes a ghostwriter, learning to understand the emotions she was never taught to feel.', gradient:'linear-gradient(135deg,#FFD23F,#8B5CF6)' },
+  { mal_id:'fb-13', title:'Naruto', score:8.0, episodes:220, type:'TV', status:'Finished Airing', synopsis:'A young ninja with a sealed fox spirit inside him dreams of becoming the leader of his village.', gradient:'linear-gradient(135deg,#8B5CF6,#22E5FF)' },
+  { mal_id:'fb-14', title:'Cowboy Bebop', score:8.7, episodes:26, type:'TV', status:'Finished Airing', synopsis:'A ragtag crew of bounty hunters chase down criminals across the solar system while outrunning their own pasts.', gradient:'linear-gradient(135deg,#FF2E8A,#8B5CF6)' },
+  { mal_id:'fb-15', title:'Spy x Family', score:8.5, episodes:37, type:'TV', status:'Currently Airing', synopsis:'A spy, an assassin, and a telepath form a fake family, each hiding their true identity from one another.', gradient:'linear-gradient(135deg,#22E5FF,#FFD23F)' }
+];
+
+const CHAR_GRADIENTS = [
+  'linear-gradient(135deg,#8B5CF6,#22E5FF)','linear-gradient(135deg,#FF2E8A,#8B5CF6)',
+  'linear-gradient(135deg,#22E5FF,#FFD23F)','linear-gradient(135deg,#FFD23F,#FF2E8A)',
+  'linear-gradient(135deg,#8B5CF6,#FF2E8A)','linear-gradient(135deg,#22E5FF,#8B5CF6)',
+  'linear-gradient(135deg,#FF2E8A,#FFD23F)','linear-gradient(135deg,#FFD23F,#22E5FF)'
+];
+function g(i){ return CHAR_GRADIENTS[i % CHAR_GRADIENTS.length]; }
+
+const FALLBACK_CHARACTERS = [
+  // Fullmetal Alchemist: Brotherhood
+  { name:'Edward Elric', anime:'Fullmetal Alchemist: Brotherhood', role:'Main' },
+  { name:'Alphonse Elric', anime:'Fullmetal Alchemist: Brotherhood', role:'Main' },
+  { name:'Winry Rockbell', anime:'Fullmetal Alchemist: Brotherhood', role:'Supporting' },
+  { name:'Roy Mustang', anime:'Fullmetal Alchemist: Brotherhood', role:'Supporting' },
+  { name:'Riza Hawkeye', anime:'Fullmetal Alchemist: Brotherhood', role:'Supporting' },
+  { name:'Alex Louis Armstrong', anime:'Fullmetal Alchemist: Brotherhood', role:'Supporting' },
+  { name:'Scar', anime:'Fullmetal Alchemist: Brotherhood', role:'Supporting' },
+  { name:'King Bradley', anime:'Fullmetal Alchemist: Brotherhood', role:'Supporting' },
+  // Attack on Titan
+  { name:'Eren Yeager', anime:'Attack on Titan', role:'Main' },
+  { name:'Mikasa Ackerman', anime:'Attack on Titan', role:'Main' },
+  { name:'Levi Ackerman', anime:'Attack on Titan', role:'Supporting' },
+  { name:'Armin Arlert', anime:'Attack on Titan', role:'Supporting' },
+  { name:'Historia Reiss', anime:'Attack on Titan', role:'Supporting' },
+  { name:'Erwin Smith', anime:'Attack on Titan', role:'Supporting' },
+  { name:'Reiner Braun', anime:'Attack on Titan', role:'Supporting' },
+  { name:'Zeke Yeager', anime:'Attack on Titan', role:'Supporting' },
+  // Steins;Gate
+  { name:'Rintarou Okabe', anime:'Steins;Gate', role:'Main' },
+  { name:'Kurisu Makise', anime:'Steins;Gate', role:'Main' },
+  { name:'Mayuri Shiina', anime:'Steins;Gate', role:'Supporting' },
+  { name:'Itaru Hashida', anime:'Steins;Gate', role:'Supporting' },
+  { name:'Suzuha Amane', anime:'Steins;Gate', role:'Supporting' },
+  { name:'Moeka Kiryuu', anime:'Steins;Gate', role:'Supporting' },
+  // One Piece
+  { name:'Monkey D. Luffy', anime:'One Piece', role:'Main' },
+  { name:'Roronoa Zoro', anime:'One Piece', role:'Supporting' },
+  { name:'Nami', anime:'One Piece', role:'Supporting' },
+  { name:'Usopp', anime:'One Piece', role:'Supporting' },
+  { name:'Sanji', anime:'One Piece', role:'Supporting' },
+  { name:'Tony Tony Chopper', anime:'One Piece', role:'Supporting' },
+  { name:'Nico Robin', anime:'One Piece', role:'Supporting' },
+  { name:'Franky', anime:'One Piece', role:'Supporting' },
+  { name:'Brook', anime:'One Piece', role:'Supporting' },
+  { name:'Jinbe', anime:'One Piece', role:'Supporting' },
+  // Frieren
+  { name:'Frieren', anime:"Frieren: Beyond Journey's End", role:'Main' },
+  { name:'Fern', anime:"Frieren: Beyond Journey's End", role:'Main' },
+  { name:'Stark', anime:"Frieren: Beyond Journey's End", role:'Supporting' },
+  { name:'Himmel', anime:"Frieren: Beyond Journey's End", role:'Supporting' },
+  { name:'Heiter', anime:"Frieren: Beyond Journey's End", role:'Supporting' },
+  { name:'Eisen', anime:"Frieren: Beyond Journey's End", role:'Supporting' },
+  // Hunter x Hunter
+  { name:'Gon Freecss', anime:'Hunter x Hunter (2011)', role:'Main' },
+  { name:'Killua Zoldyck', anime:'Hunter x Hunter (2011)', role:'Main' },
+  { name:'Kurapika', anime:'Hunter x Hunter (2011)', role:'Supporting' },
+  { name:'Leorio Paradinight', anime:'Hunter x Hunter (2011)', role:'Supporting' },
+  { name:'Hisoka Morow', anime:'Hunter x Hunter (2011)', role:'Supporting' },
+  { name:'Chrollo Lucilfer', anime:'Hunter x Hunter (2011)', role:'Supporting' },
+  // Death Note
+  { name:'Light Yagami', anime:'Death Note', role:'Main' },
+  { name:'L', anime:'Death Note', role:'Main' },
+  { name:'Misa Amane', anime:'Death Note', role:'Supporting' },
+  { name:'Ryuk', anime:'Death Note', role:'Supporting' },
+  { name:'Near', anime:'Death Note', role:'Supporting' },
+  { name:'Soichiro Yagami', anime:'Death Note', role:'Supporting' },
+  // Jujutsu Kaisen
+  { name:'Yuji Itadori', anime:'Jujutsu Kaisen', role:'Main' },
+  { name:'Satoru Gojo', anime:'Jujutsu Kaisen', role:'Supporting' },
+  { name:'Megumi Fushiguro', anime:'Jujutsu Kaisen', role:'Supporting' },
+  { name:'Nobara Kugisaki', anime:'Jujutsu Kaisen', role:'Supporting' },
+  { name:'Sukuna', anime:'Jujutsu Kaisen', role:'Supporting' },
+  { name:'Nanami Kento', anime:'Jujutsu Kaisen', role:'Supporting' },
+  // Demon Slayer
+  { name:'Tanjiro Kamado', anime:'Demon Slayer: Kimetsu no Yaiba', role:'Main' },
+  { name:'Nezuko Kamado', anime:'Demon Slayer: Kimetsu no Yaiba', role:'Main' },
+  { name:'Zenitsu Agatsuma', anime:'Demon Slayer: Kimetsu no Yaiba', role:'Supporting' },
+  { name:'Inosuke Hashibira', anime:'Demon Slayer: Kimetsu no Yaiba', role:'Supporting' },
+  { name:'Giyu Tomioka', anime:'Demon Slayer: Kimetsu no Yaiba', role:'Supporting' },
+  { name:'Kyojuro Rengoku', anime:'Demon Slayer: Kimetsu no Yaiba', role:'Supporting' },
+  // Vinland Saga
+  { name:'Thorfinn', anime:'Vinland Saga', role:'Main' },
+  { name:'Askeladd', anime:'Vinland Saga', role:'Supporting' },
+  { name:'Canute', anime:'Vinland Saga', role:'Supporting' },
+  { name:'Thorkell', anime:'Vinland Saga', role:'Supporting' },
+  { name:'Einar', anime:'Vinland Saga', role:'Supporting' },
+  // Mob Psycho 100
+  { name:'Shigeo Kageyama', anime:'Mob Psycho 100', role:'Main' },
+  { name:'Arataka Reigen', anime:'Mob Psycho 100', role:'Supporting' },
+  { name:'Teruki Hanazawa', anime:'Mob Psycho 100', role:'Supporting' },
+  { name:'Ritsu Kageyama', anime:'Mob Psycho 100', role:'Supporting' },
+  { name:'Dimple', anime:'Mob Psycho 100', role:'Supporting' },
+  // Violet Evergarden
+  { name:'Violet Evergarden', anime:'Violet Evergarden', role:'Main' },
+  { name:'Gilbert Bougainvillea', anime:'Violet Evergarden', role:'Supporting' },
+  { name:'Claudia Hodgins', anime:'Violet Evergarden', role:'Supporting' },
+  { name:'Cattleya Baudelaire', anime:'Violet Evergarden', role:'Supporting' },
+  { name:'Erica Brown', anime:'Violet Evergarden', role:'Supporting' },
+  // Naruto
+  { name:'Naruto Uzumaki', anime:'Naruto', role:'Main' },
+  { name:'Sasuke Uchiha', anime:'Naruto', role:'Main' },
+  { name:'Sakura Haruno', anime:'Naruto', role:'Supporting' },
+  { name:'Kakashi Hatake', anime:'Naruto', role:'Supporting' },
+  { name:'Itachi Uchiha', anime:'Naruto', role:'Supporting' },
+  { name:'Gaara', anime:'Naruto', role:'Supporting' },
+  // Cowboy Bebop
+  { name:'Spike Spiegel', anime:'Cowboy Bebop', role:'Main' },
+  { name:'Jet Black', anime:'Cowboy Bebop', role:'Supporting' },
+  { name:'Faye Valentine', anime:'Cowboy Bebop', role:'Supporting' },
+  { name:'Ed', anime:'Cowboy Bebop', role:'Supporting' },
+  { name:'Ein', anime:'Cowboy Bebop', role:'Supporting' },
+  // Spy x Family
+  { name:'Loid Forger', anime:'Spy x Family', role:'Main' },
+  { name:'Yor Forger', anime:'Spy x Family', role:'Main' },
+  { name:'Anya Forger', anime:'Spy x Family', role:'Main' },
+  { name:'Bond Forger', anime:'Spy x Family', role:'Supporting' }
+].map((c, i) => ({ ...c, gradient: g(i) }));
+
+/* ---------------- Ambient background particles ---------------- */
+const bgCanvas = document.getElementById('bgCanvas');
+const bgCtx = bgCanvas.getContext('2d');
+let bgW, bgH;
+function resizeBg(){
+  const hero = document.querySelector('.hero');
+  bgW = bgCanvas.width = hero.offsetWidth;
+  bgH = bgCanvas.height = hero.offsetHeight;
+}
+resizeBg();
+window.addEventListener('resize', resizeBg);
+
+function randPick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+const particles = Array.from({length: 50}, () => ({
+  x: Math.random(),
+  y: Math.random(),
+  r: Math.random()*2 + 0.6,
+  speed: Math.random()*0.0006 + 0.0002,
+  drift: (Math.random()-0.5)*0.0004,
+  hue: randPick(['#8B5CF6','#22E5FF','#FF2E8A','#FFD23F'])
+}));
+
+function drawBg(){
+  bgCtx.clearRect(0,0,bgW,bgH);
+  particles.forEach(p=>{
+    p.y -= p.speed;
+    p.x += p.drift;
+    if(p.y < -0.05) p.y = 1.05;
+    if(p.x < -0.05) p.x = 1.05;
+    if(p.x > 1.05) p.x = -0.05;
+    const px = p.x*bgW, py = p.y*bgH;
+    bgCtx.beginPath();
+    const grad = bgCtx.createRadialGradient(px,py,0,px,py,p.r*10);
+    grad.addColorStop(0, p.hue + 'aa');
+    grad.addColorStop(1, p.hue + '00');
+    bgCtx.fillStyle = grad;
+    bgCtx.arc(px,py,p.r*10,0,Math.PI*2);
+    bgCtx.fill();
+  });
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+/* ---------------- Helpers ---------------- */
+function animateCount(el, target, suffix=''){
+  let cur = 0;
+  const step = Math.max(1, target/60);
+  const iv = setInterval(()=>{
+    cur += step;
+    if(cur >= target){ cur = target; clearInterval(iv); }
+    el.textContent = Math.floor(cur).toLocaleString() + suffix;
+  }, 16);
+}
+
+async function safeFetch(url){
+  try{
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000));
+    const res = await Promise.race([fetch(url), timeoutPromise]);
+    if(!res.ok) throw new Error('bad status ' + res.status);
+    return await res.json();
+  }catch(err){
+    console.error('Fetch failed:', url, err.message);
+    return null;
+  }
+}
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+function initials(str){
+  return str.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+}
+
+function showOfflineState(){
+  LIVE_MODE = false;
+  document.getElementById('offlineBanner').classList.add('visible');
+  document.getElementById('pulseDot').classList.add('offline');
+  document.getElementById('liveLabel').textContent = 'BUILT-IN HIGHLIGHTS';
+}
+document.getElementById('bannerDismiss').addEventListener('click', ()=>{
+  document.getElementById('offlineBanner').classList.remove('visible');
+});
+
+/* ---------------- Cards ---------------- */
+function coverEl(imgUrl, gradient, label){
+  if(imgUrl){
+    const img = document.createElement('img');
+    img.className = 'cover';
+    img.src = imgUrl;
+    img.alt = label;
+    img.loading = 'lazy';
+    img.onerror = () => { img.replaceWith(placeholderEl(gradient, label)); };
+    return img;
+  }
+  return placeholderEl(gradient, label);
+}
+function placeholderEl(gradient, label){
+  const div = document.createElement('div');
+  div.className = 'cover-placeholder';
+  div.style.background = gradient || 'linear-gradient(135deg,#8B5CF6,#22E5FF)';
+  div.textContent = label;
+  return div;
+}
+
+function animeCard(anime){
+  const div = document.createElement('div');
+  div.className = 'card';
+  const imgUrl = anime.images?.jpg?.image_url || '';
+  const title = anime.title || 'Untitled';
+  const score = anime.score ? anime.score.toFixed(1) : '—';
+  const eps = anime.episodes ? anime.episodes + ' eps' : anime.type || '';
+
+  const badge = document.createElement('div');
+  badge.className = 'score-badge';
+  badge.textContent = '★ ' + score;
+  div.appendChild(badge);
+  div.appendChild(coverEl(imgUrl, anime.gradient, title));
+
+  const info = document.createElement('div');
+  info.className = 'info';
+  info.innerHTML = `<div class="title">${title}</div><div class="meta">${eps}</div>`;
+  div.appendChild(info);
+
+  div.addEventListener('click', () => openAnimeModal(anime));
+  return div;
+}
+
+function charCard(entry){
+  const character = entry.character || entry;
+  const div = document.createElement('div');
+  div.className = 'card char-card';
+  const imgUrl = character.images?.jpg?.image_url || '';
+  const name = character.name || 'Unknown';
+  const role = entry.role || character.role || '';
+  const animeName = character.anime || character.animeography?.[0]?.anime?.title || '';
+
+  div.appendChild(coverEl(imgUrl, character.gradient, name));
+  const info = document.createElement('div');
+  info.className = 'info';
+  info.innerHTML = `<div class="title">${name}</div>${animeName ? `<div class="meta">${animeName}</div>` : ''}${role ? `<span class="char-role">${role}</span>` : ''}`;
+  div.appendChild(info);
+  return div;
+}
+
+/* ---------------- Modal ---------------- */
+const modalBackdrop = document.getElementById('modalBackdrop');
+const modalBody = document.getElementById('modalBody');
+document.getElementById('modalClose').addEventListener('click', closeModal);
+modalBackdrop.addEventListener('click', (e)=>{ if(e.target === modalBackdrop) closeModal(); });
+function closeModal(){ modalBackdrop.classList.remove('open'); }
+
+async function openAnimeModal(anime){
+  const isFallback = String(anime.mal_id).startsWith('fb-');
+  modalBody.innerHTML = '';
+
+  const header = document.createElement('div');
+  header.className = 'modal-header';
+  header.appendChild(coverEl(anime.images?.jpg?.image_url, anime.gradient, anime.title));
+  const headerText = document.createElement('div');
+  headerText.innerHTML = `
+    <div class="modal-title display">${anime.title}</div>
+    <div class="modal-meta">
+      <span>★ ${anime.score ? anime.score.toFixed(2) : '—'}</span>
+      <span>${anime.episodes ? anime.episodes + ' episodes' : anime.type || ''}</span>
+      <span>${anime.status || ''}</span>
+    </div>
+  `;
+  header.appendChild(headerText);
+  modalBody.appendChild(header);
+
+  const synopsis = document.createElement('div');
+  synopsis.className = 'modal-synopsis';
+  synopsis.textContent = anime.synopsis ? anime.synopsis.slice(0,500) : 'No synopsis available.';
+  modalBody.appendChild(synopsis);
+
+  const secTitle = document.createElement('div');
+  secTitle.className = 'modal-section-title display';
+  secTitle.textContent = 'Characters';
+  modalBody.appendChild(secTitle);
+
+  const grid = document.createElement('div');
+  grid.className = 'modal-char-grid';
+  modalBody.appendChild(grid);
+  modalBackdrop.classList.add('open');
+
+  if(isFallback || !LIVE_MODE){
+    const matches = FALLBACK_CHARACTERS.filter(c => c.anime === anime.title);
+    if(matches.length === 0){
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">Character roster needs a live connection — open this file outside the preview to load it.</div>`;
+      return;
+    }
+    matches.forEach(c => {
+      const item = document.createElement('div');
+      item.className = 'modal-char';
+      item.appendChild(coverEl(null, c.gradient, c.name));
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'name';
+      nameDiv.textContent = c.name;
+      item.appendChild(nameDiv);
+      grid.appendChild(item);
+    });
+    return;
+  }
+
+  grid.innerHTML = `<div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div>Loading characters…</div>`;
+  const data = await safeFetch(`${API}/anime/${anime.mal_id}/characters`);
+  if(!data || !data.data || data.data.length === 0){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">No character data available for this title.</div>`;
+    return;
+  }
+  grid.innerHTML = '';
+  data.data.slice(0, 18).forEach(entry => {
+    const c = entry.character;
+    const item = document.createElement('div');
+    item.className = 'modal-char';
+    item.appendChild(coverEl(c.images?.jpg?.image_url, null, c.name));
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'name';
+    nameDiv.textContent = c.name;
+    item.appendChild(nameDiv);
+    grid.appendChild(item);
+  });
+}
+
+/* ---------------- Search ---------------- */
+const searchForm = document.getElementById('searchForm');
+const searchInput = document.getElementById('searchInput');
+const searchSection = document.getElementById('searchSection');
+const searchGrid = document.getElementById('searchGrid');
+const searchMeta = document.getElementById('searchMeta');
+
+searchForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const q = searchInput.value.trim();
+  if(!q) return;
+  searchSection.classList.add('visible');
+  searchGrid.innerHTML = `<div class="loading-state" style="grid-column:1/-1"><div class="spinner"></div>Searching for "${q}"…</div>`;
+  searchSection.scrollIntoView({ behavior:'smooth', block:'start' });
+
+  if(LIVE_MODE){
+    const data = await safeFetch(`${API}/anime?q=${encodeURIComponent(q)}&limit=16&sfw=true`);
+    if(data && data.data){
+      renderSearchResults(data.data, q, true);
+      return;
+    }
+    showOfflineState();
+  }
+
+  // fallback search against built-in list
+  const q_lower = q.toLowerCase();
+  const matches = FALLBACK_ANIME.filter(a => a.title.toLowerCase().includes(q_lower));
+  renderSearchResults(matches, q, false);
+});
+
+function renderSearchResults(list, q, wasLive){
+  if(!list || list.length === 0){
+    searchGrid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">No matches for "${q}"${wasLive ? '' : ' in the built-in highlight set — try opening the file outside the preview for full live search'}.</div>`;
+    searchMeta.textContent = '';
+    return;
+  }
+  searchMeta.textContent = `${list.length} result${list.length===1?'':'s'} for "${q}"${wasLive ? '' : ' (built-in set)'}`;
+  searchGrid.innerHTML = '';
+  list.forEach(anime => searchGrid.appendChild(animeCard(anime)));
+}
+
+/* ---------------- Initial load ---------------- */
+function loadFallbackAnime(){
+  const grid = document.getElementById('topAnimeGrid');
+  grid.innerHTML = '';
+  FALLBACK_ANIME.forEach(a => grid.appendChild(animeCard(a)));
+  animateCount(document.getElementById('statTitles'), FALLBACK_ANIME.length);
+
+  const track = document.getElementById('marqueeTrack');
+  [...FALLBACK_ANIME, ...FALLBACK_ANIME].forEach(a => {
+    const card = document.createElement('div');
+    card.className = 'marquee-card';
+    card.appendChild(coverEl(null, a.gradient, a.title));
+    track.appendChild(card);
+  });
+}
+function loadFallbackCharacters(){
+  const grid = document.getElementById('topCharGrid');
+  grid.innerHTML = '';
+  FALLBACK_CHARACTERS.forEach(c => grid.appendChild(charCard({ character: c, role: c.role })));
+  animateCount(document.getElementById('statChars'), FALLBACK_CHARACTERS.length);
+}
+
+async function loadTopAnime(){
+  const data = await safeFetch(`${API}/top/anime?limit=15`);
+  if(!data || !data.data){
+    showOfflineState();
+    loadFallbackAnime();
+    return;
+  }
+  const grid = document.getElementById('topAnimeGrid');
+  grid.innerHTML = '';
+  data.data.forEach(anime => grid.appendChild(animeCard(anime)));
+  if(data.pagination?.items?.total){
+    animateCount(document.getElementById('statTitles'), data.pagination.items.total, '+');
+  }
+  const track = document.getElementById('marqueeTrack');
+  const items = data.data.slice(0, 12);
+  [...items, ...items].forEach(anime => {
+    const card = document.createElement('div');
+    card.className = 'marquee-card';
+    card.appendChild(coverEl(anime.images?.jpg?.image_url, null, anime.title));
+    track.appendChild(card);
+  });
+}
+
+async function loadTopCharacters(){
+  if(!LIVE_MODE){ loadFallbackCharacters(); return; }
+  const data = await safeFetch(`${API}/top/characters?limit=15`);
+  if(!data || !data.data){
+    showOfflineState();
+    loadFallbackCharacters();
+    return;
+  }
+  const grid = document.getElementById('topCharGrid');
+  grid.innerHTML = '';
+  data.data.forEach(entry => grid.appendChild(charCard(entry)));
+  if(data.pagination?.items?.total){
+    animateCount(document.getElementById('statChars'), data.pagination.items.total, '+');
+  }
+}
+
+async function loadSeasonNow(){
+  const el = document.getElementById('statToday');
+  if(!LIVE_MODE){ el.textContent = '—'; return; }
+  const data = await safeFetch(`${API}/seasons/now?limit=1`);
+  if(data?.pagination?.items?.total){
+    animateCount(el, data.pagination.items.total);
+  } else {
+    el.textContent = '—';
+  }
+}
+
+(async function init(){
+  await loadTopAnime();
+  await sleep(450);
+  await loadTopCharacters();
+  await sleep(450);
+  await loadSeasonNow();
+})();
+</script>
+
+</body>
+</html>
